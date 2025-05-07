@@ -1,48 +1,69 @@
-const axios = require('axios');
-const { malvin } = require('../malvin');
+// Kode disesuaikan oleh Z4cK ⚡
+const handler = async (Z4cKmsg, { text: ZackText, command: Z4cKcmd, conn: ZackConn, args: Z4cKargs }) => {
+  if (!ZackText) return ZackConn.reply(Z4cKmsg.chat, `*❐『🎭』*\n*Contoh ╿↶*\n*┇↞『 .${Z4cKcmd} Tautan channel + Teks reaksi 』*\n\n> By Z4cK ⚡`, Z4cKmsg);
 
-malvin({
-    pattern: "define",
-    desc: "📖 Get the definition of a word",
-    react: "🔍",
-    category: "search",
-    filename: __filename
-},
-async (conn, mek, m, { from, q, reply }) => {
-    try {
-        if (!q) return reply("Please provide a word to define.\n\n📌 *Usage:* .define [word]");
+  console.log(`Perintah diterima: ${Z4cKcmd}, teks: ${ZackText}`);
 
-        const word = q.trim();
-        const url = `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`;
+  await ZackConn.sendMessage(Z4cKmsg.chat, { react: { text: '🕒', key: Z4cKmsg.key } });
 
-        const response = await axios.get(url);
-        const definitionData = response.data[0];
+  const Z4cKstyledMap = {
+    a: '🄰', b: '🄱', c: '🄲', d: '🄳', e: '🄴', f: '🄵', g: '🄶',
+    h: '🄷', i: '🄸', j: '🄹', k: '🄺', l: '🄻', m: '🄼', n: '🄽',
+    o: '🄾', p: '🄿', q: '🅀', r: '🅁', s: '🅂', t: '🅃', u: '🅄',
+    v: '🅅', w: '🅆', x: '➖', y: '🅈', z: '🅉',
+    '0': '⓿', '1': '➊', '2': '➋', '3': '➌', '4': '➍',
+    '5': '➎', '6': '➏', '7': '➐', '8': '➑', '9': '➒'
+  };
 
-        const definition = definitionData.meanings[0].definitions[0].definition;
-        const example = definitionData.meanings[0].definitions[0].example || '❌ No example available';
-        const synonyms = definitionData.meanings[0].definitions[0].synonyms.join(', ') || '❌ No synonyms available';
-        const phonetics = definitionData.phonetics[0]?.text || '🔇 No phonetics available';
-        const audio = definitionData.phonetics[0]?.audio || null;
+  const [ZackMainText, Z4cKoffsetStr] = ZackText.split('|');
+  const ZackLink = ZackMainText.trim().split(" ")[0];
 
-        const wordInfo = `
-📖 *Word*: *${definitionData.word}*  
-🗣️ *Pronunciation*: _${phonetics}_  
-📚 *Definition*: ${definition}  
-✍️ *Example*: ${example}  
-📝 *Synonyms*: ${synonyms}  
+  if (!ZackLink.includes("https://whatsapp.com/channel/")) {
+    return ZackConn.reply(Z4cKmsg.chat, "❌ Tautan tidak valid!\nContoh: .reactch https://whatsapp.com/channel/xxx/id Pesan ❤️|5\n\n> By Z4cK ⚡", Z4cKmsg);
+  }
 
-🔗 *Powered By Malvin King*`;
+  const Z4cKchannelID = ZackLink.split('/')[4];
+  const ZackRawMsgID = parseInt(ZackLink.split('/')[5]);
+  if (!Z4cKchannelID || isNaN(ZackRawMsgID)) return ZackConn.reply(Z4cKmsg.chat, "❌ Tautan tidak lengkap!\n\n> By Z4cK ⚡", Z4cKmsg);
 
-        if (audio) {
-            await conn.sendMessage(from, { audio: { url: audio }, mimetype: 'audio/mpeg' }, { quoted: mek });
-        }
+  const ZackOffset = parseInt(Z4cKoffsetStr?.trim()) || 1;
+  const Z4cKcleanText = ZackMainText.trim().split(" ").slice(1).join(' ');
+  const ZackTextOnly = Z4cKcleanText.replace(ZackLink, '').trim();
+  if (!ZackTextOnly) return ZackConn.reply(Z4cKmsg.chat, "❌ Masukkan teks atau emoji untuk bereaksi.\n\n> By Z4cK ⚡", Z4cKmsg);
 
-        return reply(wordInfo);
-    } catch (e) {
-        console.error("❌ Error:", e);
-        if (e.response && e.response.status === 404) {
-            return reply("🚫 *Word not found.* Please check the spelling and try again.");
-        }
-        return reply("⚠️ An error occurred while fetching the definition. Please try again later.");
+  const ZackEmoji = ZackTextOnly.toLowerCase().split('').map(char => {
+    if (char === ' ') return '―';
+    return Z4cKstyledMap[char] || char;
+  }).join('');
+
+  try {
+    const Z4cKmeta = await ZackConn.newsletterMetadata("invite", Z4cKchannelID);
+    let ZackSuccess = 0, Z4cKfail = 0;
+
+    for (let i = 0; i < ZackOffset; i++) {
+      const ZackMsgId = (ZackRawMsgID - i).toString();
+      try {
+        await ZackConn.newsletterReactMessage(Z4cKmeta.id, ZackMsgId, ZackEmoji);
+        ZackSuccess++;
+      } catch (e) {
+        Z4cKfail++;
+      }
     }
-});
+
+    await ZackConn.reply(
+      Z4cKmsg.chat, 
+      `✅ Berhasil bereaksi dengan *${ZackEmoji}* ke ${ZackSuccess} pesan di channel *${Z4cKmeta.name}*\n❌ Gagal bereaksi ke ${Z4cKfail} pesan.\n\n> By Z4cK ⚡`, 
+      Z4cKmsg
+    );
+    await ZackConn.sendMessage(Z4cKmsg.chat, { react: { text: '✅', key: Z4cKmsg.key } });
+  } catch (err) {
+    console.error(err);
+    await ZackConn.reply(Z4cKmsg.chat, "❌ Terjadi kesalahan saat bereaksi!\n\n> By Z4cK ⚡", Z4cKmsg);
+    await ZackConn.sendMessage(Z4cKmsg.chat, { react: { text: '❌', key: Z4cKmsg.key } });
+  }
+};
+
+// Perintah oleh Z4cK ⚡
+handler.command = ["reactch3", "react"];
+
+export default handler;
